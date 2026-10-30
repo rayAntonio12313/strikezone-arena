@@ -20,6 +20,9 @@
 #hit{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:34px;color:#b8f8ff;opacity:0;pointer-events:none;text-shadow:0 0 14px #5aeaff}
 #notice{position:fixed;left:50%;top:62%;transform:translate(-50%,-50%);font-size:11px;letter-spacing:.23em;color:#d3e8f2;opacity:0;pointer-events:none;text-align:center;text-shadow:0 2px 12px #000}
 #damage{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse,transparent 35%,rgba(255,75,44,.55) 100%);transition:opacity .2s}
+#bootError{display:none;position:fixed;z-index:20;inset:0;background:#080d13;color:#eef6fa;padding:9vh max(22px,6vw);font:14px/1.6 system-ui}
+#bootError strong{display:block;font-size:clamp(24px,4vw,42px);margin-bottom:12px;color:#ffb48d}
+#bootError code{color:#9deaff;overflow-wrap:anywhere}
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(115deg,rgba(4,9,14,.93),rgba(7,17,25,.78)),radial-gradient(circle at 75% 40%,#17394b66,transparent 48%);backdrop-filter:blur(8px);z-index:5}
 .panel{width:min(570px,calc(100vw - 34px));padding:34px;border:1px solid #9deaff33;background:linear-gradient(145deg,rgba(13,25,35,.95),rgba(5,11,17,.94));box-shadow:0 25px 90px #0009;position:relative}
 .kicker{color:var(--cyan);font-size:10px;letter-spacing:.35em;font-weight:800}.title{font-size:clamp(38px,8vw,68px);line-height:.92;font-weight:950;letter-spacing:-.06em;margin:17px 0 12px}.title span{color:var(--cyan)}.desc{max-width:430px;color:#a9bbc7;font-size:13px;line-height:1.7}
@@ -34,7 +37,17 @@
 </style>
 </head>
 <body>
-<div id="game"></div><div id="vignette"></div>
+<div id="game"></div><div id="vignette"></div><div id="bootError"><strong>Não foi possível iniciar o modo 3D</strong><p id="bootErrorText">O navegador não conseguiu iniciar o motor gráfico.</p><p>Tente abrir no Chrome ou Edge atualizado, feche outras abas e selecione “Desempenho” nas configurações.</p><p><code>FRONTLINE: ARENA</code></p></div>
+<script>
+  window.addEventListener('error', function(event){
+    const box=document.getElementById('bootError'), msg=document.getElementById('bootErrorText');
+    if(box&&msg){box.style.display='block';msg.textContent='Erro: '+(event.message||'falha ao carregar o jogo')+' (linha '+(event.lineno||'?')+')';}
+  });
+  window.addEventListener('unhandledrejection', function(event){
+    const box=document.getElementById('bootError'), msg=document.getElementById('bootErrorText');
+    if(box&&msg){box.style.display='block';msg.textContent='Falha ao carregar o motor 3D. Verifique a conexão com a internet e recarregue a página.';}
+  });
+</script>
 <div id="topbar"><div><div class="brand">FRONTLINE <span>/</span> ARENA</div><div class="mode">LIVE FIRE TRAINING • INDUSTRIAL COMPLEX 07</div></div><div id="stats"><div class="stat"><small>ELIMINAÇÕES</small><b id="kills">00</b></div><div class="stat"><small>ALVOS ATIVOS</small><b id="active">06</b></div><div class="stat"><small>TEMPO</small><b id="clock">03:00</b></div></div></div>
 <div id="leftHud"><div class="meter"><div class="meterHead"><span>INTEGRIDADE</span><b id="hpText">100</b></div><div class="bar"><div class="fill health" id="hp"></div></div></div><div class="meter"><div class="meterHead"><span>ESCUDO</span><b id="shieldText">100</b></div><div class="bar"><div class="fill" id="shield"></div></div></div></div>
 <div id="weaponHud"><div class="weaponName">PULSE EMITTER <span style="color:#68dff8"> // MK-IV</span></div><div class="ammo"><b id="ammo">18</b> <span>/ <span id="reserve">∞</span></span></div><div class="weaponName" id="weaponState">ENERGY CELL READY</div></div>
@@ -47,7 +60,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 const $ = id => document.getElementById(id);
 const host = $('game');
-let quality = 'medium', renderer, scene, camera, clock;
+let quality = 'low', renderer, scene, camera, clock;
 let started = false, paused = true, ended = false, locked = false;
 let yaw = 0, pitch = 0, velocityY = 0, onGround = true;
 const keys = {};
@@ -268,10 +281,10 @@ function makeWeapon(){
 let weapon;
 function setup(){
   scene=new THREE.Scene();scene.background=new THREE.Color(0x64727a);scene.fog=new THREE.FogExp2(0x77838a,.0075);
-  camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.08,180);camera.position.set(0,1.72,34);camera.rotation.order='YXZ';
-  renderer=new THREE.WebGLRenderer({antialias:quality!=='low',powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(innerWidth,innerHeight);
-  renderer.shadowMap.enabled=quality!=='low';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.08,180);camera.position.set(0,1.72,34);camera.rotation.order='YXZ';scene.add(camera);
+  renderer=new THREE.WebGLRenderer({antialias:quality!=='low',powerPreference:'low-power'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,.85));renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=false;renderer.shadowMap.type=THREE.BasicShadowMap;
   renderer.shadowMap.autoUpdate=true;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.96;renderer.outputColorSpace=THREE.SRGBColorSpace;
   host.innerHTML='';host.appendChild(renderer.domElement);
@@ -390,6 +403,7 @@ document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyR')rel
 document.addEventListener('keyup',e=>{keys[e.code]=false});
 document.addEventListener('mousedown',e=>{if(e.button===0)firePlayer()});
 window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-setup();setQuality(quality);updateHUD();animate();
+try{setup();setQuality(quality);updateHUD();animate();}
+catch(error){console.error('FRONTLINE startup failed:',error);const box=$('bootError'),msg=$('bootErrorText');box.style.display='block';msg.textContent='Erro ao iniciar o jogo: '+(error?.message||String(error));}
 </script>
 </body></html>
