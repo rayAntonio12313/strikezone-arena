@@ -51,7 +51,7 @@ let quality = 'medium', renderer, scene, camera, clock;
 let started = false, paused = true, ended = false, locked = false;
 let yaw = 0, pitch = 0, velocityY = 0, onGround = true;
 const keys = {};
-const bots = [], botProjectiles = [], playerProjectiles = [], colliders = [], raycaster = new THREE.Raycaster();
+const bots = [], botProjectiles = [], playerProjectiles = [], colliders = [], obstacles = [], raycaster = new THREE.Raycaster();
 let kills = 0, ammo = 18, reloading = false, health = 100, shield = 100;
 let timeLeft = 180, wave = 1, noticeTimer = 0, fireCooldown = 0, lastHit = 0, shieldDelay = 0;
 let sensitivity = 0.0021, volume = 0.45, gameMode = 'timed';
@@ -63,7 +63,7 @@ const clockLabel = $('clock');
 const mat = (color, roughness=.8, metalness=.1, emissive=null) => new THREE.MeshStandardMaterial({color,roughness,metalness,emissive:emissive||0x000000,emissiveIntensity:emissive?0.7:0});
 const addBox = (w,h,d,material,x,y,z,cast=true,receive=true) => {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
-  mesh.position.set(x,y,z); mesh.castShadow=cast; mesh.receiveShadow=receive; scene.add(mesh); return mesh;
+  mesh.position.set(x,y,z); mesh.castShadow=cast; mesh.receiveShadow=receive; scene.add(mesh); obstacles.push(mesh); return mesh;
 };
 function initAudio(){
   const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
